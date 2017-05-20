@@ -4,6 +4,7 @@ import (
     "fmt"
     "strings"
     "time"
+    "net/url"
     "net/http"
     "io/ioutil"
     "log"
@@ -14,6 +15,7 @@ type GuardKey struct {
     key string
     timeout int
 }
+func authentication(w Request) {
 
 func HelloServer(w http.ResponseWriter, req *http.Request) {
     
@@ -30,15 +32,35 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
             fmt.Print("key:", k, "; ")
             fmt.Println("val:", strings.Join(v, ""))
         }
-        io.WriteString(w, "1")
     } else if req.Method == "POST" {
         result, _:= ioutil.ReadAll(req.Body)
         req.Body.Close()
         fmt.Printf("%s\n", result)
         js, err := simplejson.NewJson(result);
-        ms := js.Get("tcUrl").MustString()
-        fmt.Println(ms)
+        tc := js.Get("tcUrl").MustString()
+        fmt.Println(tc)
         fmt.Println(err)
+        
+        //解析tcUrl
+        u, err := url.Parse(tc)
+        if err != nil {
+            log.Fatal(err)
+        }
+        fmt.Println(u.Scheme)
+        fmt.Println(u.Opaque) // null
+        fmt.Println(u.Host)
+        fmt.Println(u.Path)
+        fmt.Println(u.RawPath) // null
+        fmt.Println(u.RawQuery) // ? params
+        fmt.Println(u.Fragment) // null
+        fmt.Println(u)
+        
+        u.Scheme = "https"
+        u.Host = "google.com"
+        q := u.Query()
+        q.Set("q", "golang")
+        u.RawQuery = q.Encode()
+        fmt.Println(u)
         io.WriteString(w, "0")
         return
     }
