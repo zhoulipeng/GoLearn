@@ -102,9 +102,8 @@ func HelloServer(w http.ResponseWriter, req *http.Request) {
     io.WriteString(w, "1")
 }
 func main() {
-    fmt.Println("start server at : "time.Now().Format("2006-01-02 15:04:05"))
+    fmt.Println("start server at : " + time.Now().Format("2006-01-02 15:04:05"))
     http.HandleFunc("/api/guard", HelloServer)
-    fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
     err := http.ListenAndServe(":12345", nil)
     if err != nil {
         log.Fatal("ListenAndServe: ", err)
