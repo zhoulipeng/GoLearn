@@ -20,6 +20,7 @@ func hash_sum(raw string) string{
     hasher.Write([]byte(raw))
     return hex.EncodeToString(hasher.Sum(nil))
 }
+
 func auth_timestamp(time_str string) bool{
     cur_gmt := time.Now().Unix()
     fmt.Println("cur_gmt is:", cur_gmt);
@@ -35,6 +36,7 @@ func auth_timestamp(time_str string) bool{
     }
     return true
 }
+
 func auth_token(u *url.URL, m url.Values) bool{
     safe_code := "##svi&&lgslb##"
     hash_raw := u.Path +
@@ -46,15 +48,9 @@ func auth_token(u *url.URL, m url.Values) bool{
     hash_req := strings.Join(m["token"], "")
     fmt.Println("request hash: ", hash_req)
     fmt.Println("safe hash is: ", hash_s)
-    if(hash_req == hash_s){
-        fmt.Println("auth success.")
-        return true
-    }else{
-        fmt.Println("auth failed.")
-        return false
-    }
-    return true
+    return hash_req == hash_s
 }
+
 func do_auth(result []byte) bool{
     js, err := simplejson.NewJson(result);
     if err != nil {
