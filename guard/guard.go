@@ -22,7 +22,7 @@ func hash_sum(raw string) string{
 }
 
 func auth_timestamp(time_str string) bool{
-    cur_gmt := time.Now().Unix()
+    cur_gmt := time.Now().UTC().Unix() 
     fmt.Println("cur_gmt is:", cur_gmt);
     req_gmt, err := strconv.ParseInt(time_str, 10, 64)
 
