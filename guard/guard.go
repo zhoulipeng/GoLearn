@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,11 +22,11 @@ import "github.com/takama/daemon"
 const (
 
 	// name of the service
-	name        = "myservice"
-	description = "vlss_guard"
+	name        = "guard"
+	description = "vlss guard service"
 
 	// port which daemon should be listen
-	port = ":9977"
+	port = "127.0.0.1:12345"
 )
 
 // dependencies that are NOT required by the service, but might be used
@@ -41,36 +40,24 @@ type Service struct {
 }
 
 func startHttpServer() *http.Server {
-	srv := &http.Server{Addr: ":8080"}
+	srv := &http.Server{Addr: port}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "hello world\n")
-	})
+	http.HandleFunc("/api/guard", GuardServer)
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			// cannot panic,
-			// because this
-			// probably is an
-			// intentional close
+			// cannot panic, because this probably is an intentional close
 			log.Printf("Httpserver: ListenAndServe() error: %s", err)
 		}
 	}()
-
-	// returning
-	// reference
-	// so
-	// caller
-	// can
-	// call
-	// Shutdown()
+	// returning reference so caller can call Shutdown()
 	return srv
 }
 
 // Manage by daemon commands or run the daemon
 func (service *Service) Manage() (string, error) {
 
-	usage := "Usage: myservice install | remove | start | stop | status"
+	usage := "Usage: guard install | remove | start | stop | status"
 
 	// if received any kind of command, do it
 	if len(os.Args) > 1 {
@@ -90,15 +77,6 @@ func (service *Service) Manage() (string, error) {
 			return usage, nil
 		}
 	}
-	/*fmt.Println("start server at : " + time.Now().Format("2006-01-02 15:04:05"))
-	go func() {
-		http.HandleFunc("/api/guard", HelloServer)
-		errlog.Println("set handler ok!")
-		err := http.ListenAndServe("127.0.0.1:12345", nil)
-		if err != nil {
-			//return "ListenAndServe: failed ", err
-		}
-	}()*/
 
 	// Do something, call your goroutines, etc
 
@@ -108,22 +86,15 @@ func (service *Service) Manage() (string, error) {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
 
-	// Set up listener for defined host and port
-	listener, err := net.Listen("tcp", port)
-	if err != nil {
-		return "Possibly was a problem with the port binding", err
-	}
-
-	// set up channel on which to send accepted connections
-	listen := make(chan net.Conn, 100)
-	go acceptConnection(listener, listen)
+        errlog.Println("before start_http: ")
+	startHttpServer()
 	
 	// loop work cycle with accept connections or interrupt
 	// by system signal
 	for {
 		select {
-		case conn := <-listen:
-		go handleClient(conn)
+		//case conn := <-listen:
+		//go handleClient(conn)
 		case killSignal := <-interrupt:
 			stdlog.Println("Got signal:", killSignal)
 			stdlog.Println("Stoping listening on ")
@@ -131,29 +102,6 @@ func (service *Service) Manage() (string, error) {
 				return "Daemon was interrupted by system signal", nil
 			}
 		}
-	}
-}
-
-
-// Accept a client connection and collect it in a channel
-func acceptConnection(listener net.Listener, listen chan<- net.Conn) {
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			continue
-		}
-		listen <- conn
-	}
-}
-
-func handleClient(client net.Conn) {
-	for {
-		buf := make([]byte, 4096)
-		numbytes, err := client.Read(buf)
-		if numbytes == 0 || err != nil {
-			return
-		}
-		client.Write(buf[:numbytes])
 	}
 }
 
@@ -221,7 +169,7 @@ func do_auth(result []byte) bool {
 	return auth_token(u, m)
 }
 
-func HelloServer(w http.ResponseWriter, req *http.Request) {
+func GuardServer(w http.ResponseWriter, req *http.Request) {
 
 	req.ParseForm() //解析参数，默认是不会解析的
 	fmt.Println("method:", req.Method, "time is: ", time.Now())
@@ -243,15 +191,6 @@ func init() {
 	stdlog = log.New(os.Stdout, "", 0)
 	errlog = log.New(os.Stderr, "", 0)
 }
-
-/*func main() {
-	fmt.Println("start server at : " + time.Now().Format("2006-01-02 15:04:05"))
-	http.HandleFunc("/api/guard", HelloServer)
-	err := http.ListenAndServe(":12345", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
-}*/
 func main() {
 	srv, err := daemon.New(name, description, dependencies...)
 	if err != nil {
