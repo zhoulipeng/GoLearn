@@ -7,4 +7,7 @@
 #git clone https://github.com/takama/daemon.git
 #cd ../../../
 export GOPATH="${PWD}"
-go build -o guard.exe
+export GOTRACEBACK=crash 
+go build -gcflags "-N -l" guard.go
+# please chech http service with command "ss -lanp|grep 12345"
+# don't use command "lsof -n|grep 12345"
